@@ -1,0 +1,11 @@
+[package]
+name = "rp-watch"
+version = "0.1.0"
+authors = ["Qingyao Sun <sunqingyao19970825@icloud.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11.3", features = ["blocking"] }
+serde = "1.0.126"
