@@ -1,5 +1,6 @@
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
+#[derive(Debug)]
 pub struct ShoreLandSearchForm {
     min_rent: Option<u32>,
     max_rent: Option<u32>,
@@ -73,4 +74,20 @@ impl Serialize for ShoreLandSearchForm {
 
         state.end()
     }
+}
+
+#[derive(Default, Debug)]
+pub struct BasicInfo {
+    pub bedrooms: u32,
+    pub bathrooms: u32,
+    pub area: u32,
+    pub rent: u32,
+    pub url: String,
+}
+
+#[derive(Debug)]
+pub struct FullInfo {
+    pub info: BasicInfo,
+    pub rent: u32,
+    pub period: u32,
 }
