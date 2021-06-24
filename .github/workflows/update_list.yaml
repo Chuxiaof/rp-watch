@@ -10,8 +10,12 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      SSL_CERT_FILE: /tmp/cacert.pem
     steps:
       - uses: actions/checkout@v2
+      - name: Setup CA certificates
+        run: curl https://curl.se/ca/cacert.pem > /tmp/cacert.pem
       - name: Build
         run: cargo build --verbose
       - name: Update list
