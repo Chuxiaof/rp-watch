@@ -21,7 +21,7 @@ lazy_static! {
 
 static RENT_LOWER: u32 = 1700;
 static RENT_UPPER: u32 = 2500;
-static REND_STEP: u32 = 10;
+static RENT_STEP: u32 = 5;
 static CONCURRENT_REQUESTS: usize = 16;
 
 #[tokio::main]
@@ -31,11 +31,11 @@ async fn main() {
         .build()
         .unwrap();
     let forms = (RENT_LOWER..RENT_UPPER)
-        .step_by(REND_STEP as usize)
+        .step_by(RENT_STEP as usize)
         .map(|i| {
             ShoreLandSearchForm::new(
                 Some(i),
-                Some(i + REND_STEP - 1),
+                Some(i + RENT_STEP - 1),
                 Some(2),
                 Some(2),
                 2021,
