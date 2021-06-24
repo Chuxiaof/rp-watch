@@ -5,12 +5,15 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use tokio;
 
-use rp_watch::shorelandsearch::{BasicInfo, FullInfo, ShoreLandSearchForm};
+use rp_watch::shorelandsearch::{BareInfo, FullInfo, ShoreLandSearchForm};
 
 lazy_static! {
-    static ref BEDROOMS_PATTERN: Regex = Regex::new(r"^(\d+)$").unwrap();
-    static ref BATHROOMS_PATTERN: Regex = Regex::new(r"^(\d+)\.0$").unwrap();
-    static ref AREA_PATTERN: Regex = Regex::new(r"^(\d+)\.00$").unwrap();
+    static ref INFO_PATTERN: Vec<Regex> = vec![
+        Regex::new(r"^(\d+)$").unwrap(),
+        Regex::new(r"^(\d+)\.0$").unwrap(),
+        Regex::new(r"^(\d+)\.00$").unwrap(),
+        Regex::new(r"^\$(\d+)\.00$").unwrap(),
+    ];
     static ref RENT_PATTERN: Regex = Regex::new(r"^\$(\d+)\.00$").unwrap();
     static ref ROOM_PATTERN: Regex = Regex::new(r"^2BR - ([NS]\d{4})$").unwrap();
     static ref PERIOD_PATTERN: Regex = Regex::new(r"^for (\d+) Months$").unwrap();
@@ -37,7 +40,7 @@ async fn main() {
                 6,
             )
         });
-    let records = stream::iter(forms)
+    let mut records = stream::iter(forms)
         .map(|form| get_page(&client, form))
         .buffer_unordered(CONCURRENT_REQUESTS)
         .flat_map(|page| page)
@@ -45,26 +48,37 @@ async fn main() {
         .buffer_unordered(CONCURRENT_REQUESTS)
         .collect::<Vec<_>>()
         .await;
+    records.sort_by_key(|record| record.bare.room.clone());
 
-    dbg!(&records);
-    dbg!(records.len());
+    println!("room,bedrooms,bathrooms,area,wrong_rent,rent,period");
+    for record in records {
+        let bare = record.bare;
+        println!(
+            "{},{},{},{},{},{},{}",
+            bare.room,
+            bare.bedrooms,
+            bare.bathrooms,
+            bare.area,
+            bare.rent,
+            record.rent,
+            record.period
+        );
+    }
 }
 
 async fn get_page(
     client: &reqwest::Client,
     form: ShoreLandSearchForm,
-) -> impl Stream<Item = BasicInfo> {
-    println!("Fetching page for {:?}", form);
+) -> impl Stream<Item = BareInfo> {
     let html = client
         .post("https://macapartments.secure.force.com/mac/ShorelandSiteSearch")
-        .form(&form)
+        .form(&form.data)
         .send()
         .await
         .unwrap()
         .text()
         .await
         .unwrap();
-    println!("Got page for {:?}", form);
 
     stream::iter(
         kuchiki::parse_html()
@@ -75,69 +89,33 @@ async fn get_page(
     )
 }
 
-fn extract_info<T>(row: &kuchiki::NodeDataRef<T>) -> BasicInfo {
-    let mut info = BasicInfo::default();
-    row.as_node()
+fn extract_info<T>(row: &kuchiki::NodeDataRef<T>) -> BareInfo {
+    let mut info_iter = row
+        .as_node()
         .select("table.results-table > tbody > tr > td")
         .unwrap()
-        .map(|node| {
-            node.as_node()
-                .first_child()
+        .zip(INFO_PATTERN.iter())
+        .map(|(node, pattern)| {
+            pattern
+                .captures(
+                    node.as_node()
+                        .first_child()
+                        .unwrap()
+                        .as_text()
+                        .unwrap()
+                        .borrow()
+                        .trim(),
+                )
                 .unwrap()
-                .as_text()
+                .get(1)
                 .unwrap()
-                .borrow()
-                .trim()
-                .to_string()
-        })
-        .enumerate()
-        .for_each(|(i, x)| match i {
-            0 => {
-                info.bedrooms = BEDROOMS_PATTERN
-                    .captures(&x)
-                    .unwrap()
-                    .get(1)
-                    .unwrap()
-                    .as_str()
-                    .parse()
-                    .unwrap();
-            }
-            1 => {
-                info.bathrooms = BATHROOMS_PATTERN
-                    .captures(&x)
-                    .unwrap()
-                    .get(1)
-                    .unwrap()
-                    .as_str()
-                    .parse()
-                    .unwrap();
-            }
-            2 => {
-                info.area = AREA_PATTERN
-                    .captures(&x)
-                    .unwrap()
-                    .get(1)
-                    .unwrap()
-                    .as_str()
-                    .parse()
-                    .unwrap();
-            }
-            3 => {
-                info.rent = RENT_PATTERN
-                    .captures(&x)
-                    .unwrap()
-                    .get(1)
-                    .unwrap()
-                    .as_str()
-                    .parse()
-                    .unwrap();
-            }
-            _ => panic!(),
+                .as_str()
+                .parse()
+                .unwrap()
         });
 
-    info.url = format!(
-        "https://www.macapartments.com/unit/Regents-Park-{}-2BR",
-        ROOM_PATTERN
+    BareInfo {
+        room: ROOM_PATTERN
             .captures(
                 row.as_node()
                     .select_first("a.caps")
@@ -154,22 +132,27 @@ fn extract_info<T>(row: &kuchiki::NodeDataRef<T>) -> BasicInfo {
             .get(1)
             .unwrap()
             .as_str()
-    );
-
-    info
+            .to_string(),
+        bedrooms: info_iter.next().unwrap(),
+        bathrooms: info_iter.next().unwrap(),
+        area: info_iter.next().unwrap(),
+        rent: info_iter.next().unwrap(),
+    }
 }
 
-async fn complete(client: &reqwest::Client, info: BasicInfo) -> FullInfo {
-    println!("Fetching {}", &info.url);
+async fn complete(client: &reqwest::Client, bare: BareInfo) -> FullInfo {
+    eprintln!("Fetching {}", &bare.room);
     let body = client
-        .get(&info.url)
+        .get(format!(
+            "https://www.macapartments.com/unit/Regents-Park-{}-2BR",
+            &bare.room
+        ))
         .send()
         .await
         .unwrap()
         .text()
         .await
         .unwrap();
-    println!("Got {}", &info.url);
     let parser = kuchiki::parse_html().one(body);
     let rent_unit = parser.select_first(r"h3#priceUnit").unwrap();
     let rent = RENT_PATTERN
@@ -210,9 +193,5 @@ async fn complete(client: &reqwest::Client, info: BasicInfo) -> FullInfo {
         .parse::<u32>()
         .unwrap();
 
-    FullInfo {
-        info: info,
-        rent,
-        period,
-    }
+    FullInfo { bare, rent, period }
 }
