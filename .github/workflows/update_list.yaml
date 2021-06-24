@@ -10,16 +10,14 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
     steps:
       - uses: actions/checkout@v2
-      - name: List CA certificates
-        run: ls -la /etc/ssl/certs
-      - name: Download CA certificates
-        run: curl https://curl.se/ca/cacert.pem > /tmp/cacert.pem
       - name: Build
         run: cargo build --verbose
       - name: Update list
-        run: env SSL_CERT_FILE=/tmp/cacert.pem cargo run > apt_list.csv
+        run: cargo run > apt_list.csv
       - name: Commit apartment list
         run: |
           git config --global user.name 'Qingyao Sun'
