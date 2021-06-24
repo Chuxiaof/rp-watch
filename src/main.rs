@@ -22,7 +22,7 @@ lazy_static! {
 static RENT_LOWER: u32 = 1700;
 static RENT_UPPER: u32 = 2500;
 static REND_STEP: u32 = 10;
-static CONCURRENT_REQUESTS: usize = 16;
+static CONCURRENT_REQUESTS: usize = 8;
 
 #[tokio::main]
 async fn main() {
