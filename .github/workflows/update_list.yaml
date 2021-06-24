@@ -12,8 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup CA certificates
+      - name: List CA certificates
         run: ls -la /etc/ssl/certs
+      - name: Download CA certificates
         run: curl https://curl.se/ca/cacert.pem > /tmp/cacert.pem
       - name: Build
         run: cargo build --verbose
