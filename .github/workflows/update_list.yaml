@@ -11,14 +11,12 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout main
+        uses: actions/checkout@v2
         with:
             ref: main
-      - name: Build
-        run: cargo build --verbose
-      - name: Show cache key
-        run: echo ${{ runner.os }}-cargo-${{ github.sha }}
-      - uses: actions/cache@v2
+      - name: Cache build dependencies
+        uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/bin/
@@ -27,7 +25,10 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ github.sha }}
-      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --verbose
+      - name: Checkout apt_list
+        uses: actions/checkout@v2
         with:
             ref: apt_list
             path: apt_list
