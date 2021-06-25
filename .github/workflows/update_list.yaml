@@ -27,16 +27,16 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ github.sha }}
       - name: Build
         run: cargo build --verbose
-      - name: Checkout apt_list
+      - name: Checkout apt-lists
         uses: actions/checkout@v2
         with:
-            ref: apt_list
-            path: apt_list
+            ref: apt-lists
+            path: apt-lists
       - name: Fetch latest apartment list
-        run: cargo run > apt_list/2b2b.csv
-      - name: Commit apartment list to apt_list
+        run: cargo run > apt-lists/2b2b.csv
+      - name: Commit apartment lists to apt-lists
         run: |
-          cd apt_list
+          cd apt-lists
           git config --global user.name 'Qingyao Sun'
           git config --global user.email 'sunqingyao19970825@icloud.com'
           git add -A
