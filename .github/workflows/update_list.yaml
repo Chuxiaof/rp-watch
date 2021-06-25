@@ -14,13 +14,17 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: cargo build --verbose
+      - uses: actions/checkout@v2
+        with:
+            ref: apt_list
+            path: apt_list
       - name: Fetch latest apartment list
-        run: cargo run > apt_list.csv
+        run: cargo run > apt_list/apt_list.csv
       - name: Commit apartment list to apt_list
         run: |
+          cd apt_list
           git config --global user.name 'Qingyao Sun'
           git config --global user.email 'sunqingyao19970825@icloud.com'
-          git checkout -b apt_list refs/remotes/origin/apt_list
           git add -A
           git diff-index --quiet HEAD || git commit -m "Automated report"
           git push
