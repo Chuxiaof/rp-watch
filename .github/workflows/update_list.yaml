@@ -1,0 +1,29 @@
+name: Update Regents Park Apartment List
+
+on:
+  schedule:
+    - cron:  '42 * * * *'    # At minute 42
+  push:
+    branches: [ main ]
+
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --verbose
+      - name: Fetch latest apartment list
+        run: cargo run > apt_list.csv
+      - uses: Checkout apt_list
+        with:
+            ref: apt_list
+      - name: Commit apartment list to apt_list
+        run: |
+          git config --global user.name 'Qingyao Sun'
+          git config --global user.email 'sunqingyao19970825@icloud.com'
+          git checkout apt_list
+          git add -A
+          git diff-index --quiet HEAD || git commit -m "Automated report"
+          git push
