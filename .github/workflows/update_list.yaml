@@ -16,9 +16,6 @@ jobs:
         run: cargo build --verbose
       - name: Fetch latest apartment list
         run: cargo run > apt_list.csv
-      - uses: Checkout apt_list
-        with:
-            ref: apt_list
       - name: Commit apartment list to apt_list
         run: |
           git config --global user.name 'Qingyao Sun'
