@@ -20,7 +20,7 @@ jobs:
         run: |
           git config --global user.name 'Qingyao Sun'
           git config --global user.email 'sunqingyao19970825@icloud.com'
-          git checkout apt_list
+          git checkout -b apt_list refs/remotes/origin/apt_list
           git add -A
           git diff-index --quiet HEAD || git commit -m "Automated report"
           git push
