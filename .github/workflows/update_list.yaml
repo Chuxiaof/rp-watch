@@ -2,7 +2,7 @@ name: Update Regents Park Apartment List
 
 on:
   schedule:
-    - cron:  '42 * * * *'    # At minute 42
+    - cron:  '*/30 * * * *'    # At every 30th minute
   push:
     branches: [ main ]
 
@@ -33,7 +33,7 @@ jobs:
             ref: apt_list
             path: apt_list
       - name: Fetch latest apartment list
-        run: cargo run > apt_list/apt_list.csv
+        run: cargo run > apt_list/2b2b.csv
       - name: Commit apartment list to apt_list
         run: |
           cd apt_list
